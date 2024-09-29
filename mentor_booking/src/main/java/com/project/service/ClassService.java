@@ -10,7 +10,6 @@ import com.project.exception.OurException;
 import com.project.model.Mentors;
 import com.project.model.Semester;
 import com.project.model.Students;
-import com.project.model.Users;
 import com.project.repository.ClassRepository;
 import com.project.repository.MentorsRepository;
 import com.project.repository.SemesterRepository;
@@ -19,10 +18,10 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Optional;
-import java.util.stream.Collectors;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 
 /**
@@ -45,6 +44,7 @@ public class ClassService {
     private StudentsRepository studentsRepository;
 
     @Autowired
+    @Lazy
     private ModelMapper modelMapper;
 
     public Response CreateClass(Response inputRequest) {
@@ -193,5 +193,10 @@ public class ClassService {
         classDto.setStudents(Arrays.asList(modelMapper.map(insertClass.getStudents(), StudentsDTO[].class)));
         classDto.setMentor(this.modelMapper.map(insertClass.getMentor(), MentorsDTO.class));
         return classDto;
+    }
+    
+    @Bean
+    public ModelMapper modelMapper() {
+        return new ModelMapper();
     }
 }

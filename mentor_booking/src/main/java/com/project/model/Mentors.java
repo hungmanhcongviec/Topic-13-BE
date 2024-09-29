@@ -28,7 +28,7 @@ public class Mentors {
 
     @Column(name = "star")
     private int star;
-    @Column(name = "mentorCode")
+    @Column(name = "mentor_code")
     private String mentorCode;
     @Column(name = "total_time_remain")
     private int totalTimeRemain;

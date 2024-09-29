@@ -30,4 +30,5 @@ public class AuthController {
                 changeRequest.getNewPassword());
         return ResponseEntity.status(response.getStatusCode()).body(response);
     }
+    
 }
