@@ -50,7 +50,7 @@ public class Users implements UserDetails{
     @JoinColumn(name = "role_id")
     private Role role;
     
-    @Column(name = "birthDate")
+    @Column(name = "birth_date")
     private LocalDate birthDate;
     
     @Column(name = "avatar")

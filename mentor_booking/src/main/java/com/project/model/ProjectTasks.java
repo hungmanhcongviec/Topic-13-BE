@@ -28,8 +28,8 @@ public class ProjectTasks {
     @Column(name = "description")
     private String description;
     
-    @Column(name = "percent")
-    private float percent;
+    @Column(name = "percentage")
+    private float percentage;
     
     @Enumerated(EnumType.STRING)
     @Column(name = "status")

@@ -24,7 +24,7 @@ public class Students {
     @Column(name = "expertise")
     private String expertise;
     
-    @Column(name = "studentCode")
+    @Column(name = "student_code")
     private String studentCode;
     
     @Column(name = "point")

@@ -16,10 +16,9 @@ import java.util.Optional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import com.project.repository.UsersRepository;
-import com.project.ultis.JWTUtils;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import org.springframework.security.authentication.AuthenticationManager;
+import java.util.stream.Collectors;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 /**
@@ -27,7 +26,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
  * @author Thịnh Đạt
  */
 @Service
-public class UsersService{
+public class UsersService {
 
     @Autowired
     private UsersRepository usersRepository;
@@ -40,12 +39,6 @@ public class UsersService{
 
     @Autowired
     private StudentsRepository studentsRepository;
-
-    @Autowired
-    private JWTUtils jWTUltis;
-
-    @Autowired
-    private AuthenticationManager authenticationManager;
 
     @Autowired
     private PasswordEncoder passwordEncoder;
@@ -106,7 +99,7 @@ public class UsersService{
             if (newUser.getId() > 0) {
                 UsersDTO usersDTO = userToUserDTO(newUser);
                 response.setUsersDTO(usersDTO);
-                response.setStatusCode(201);
+                response.setStatusCode(200);
                 response.setMessage("User created successfully");
             }
 
@@ -121,14 +114,50 @@ public class UsersService{
     }
 
     // Phương thức trả về tất cả người dùng
-    public List<Users> findAllUsers() {
-        return usersRepository.findAll();
+    public Response getAllUser() {
+        Response response = new Response();
+        try {
+            List<Users> list = usersRepository.findAll();
+            if (!list.isEmpty()) {
+                List<UsersDTO> listDTO = list.stream()
+                        .map(this::userToUserDTO)
+                        .collect(Collectors.toList());
+
+                response.setUsersDTOList(listDTO);
+                response.setStatusCode(200);
+                response.setMessage("Users fetched successfully");
+            }
+        } catch (OurException e) {
+            response.setStatusCode(400);
+            response.getMessage();
+        } catch (Exception e) {
+            response.setStatusCode(500);
+            response.setMessage("Error occured during get all user " + e.getMessage());
+        }
+
+        return response;
     }
 
     // Phương thức tìm người dùng theo id
-    public Users findUserById(Long id) {
-        Optional<Users> user = usersRepository.findById(id);
-        return user.orElse(null);
+    public Response getUserById(Long id) {
+        Response response = new Response();
+        try {
+            Users user = usersRepository.findById(id).orElseThrow(
+                    () -> new OurException("User not found"));
+            if (user != null) {
+                UsersDTO userDTO = userToUserDTO(user);
+                response.setUsersDTO(userDTO);
+                response.setStatusCode(200);
+                response.setMessage("Succesfully");
+            }
+        } catch (OurException e) {
+            response.setStatusCode(400);
+            response.getMessage();
+        } catch (Exception e) {
+            response.setStatusCode(500);
+            response.setMessage("Error occured during get user by id " + id);
+        }
+        return response;
     }
 
     // Phương thức lưu người dùng
@@ -137,54 +166,78 @@ public class UsersService{
     }
 
     // Phương thức xóa người dùng theo id
-    public void deleteUser(Long id) {
-        usersRepository.deleteById(id);
+    public Response deleteUser(Long id) {
+        Response response = new Response();
+        try {
+            Users user = usersRepository.findById(id)
+                    .orElseThrow(
+                            () -> new OurException("User not found with id: " + id));
+            usersRepository.delete(user);
+            response.setStatusCode(200);
+            response.setMessage("User deleted successfully");
+        } catch (OurException e) {
+            response.setStatusCode(400);
+            response.setMessage(e.getMessage());
+        } catch (Exception e) {
+            response.setStatusCode(500);
+            response.setMessage("Error occurred while deleting user: " + id);
+        }
+        return response;
     }
 
     // Phương thức cập nhật thông tin người dùng
-    public Users updateUsers(Long id, Users newUser) {
-        return usersRepository.findById(id)
-                .map(user -> {
-                    // Cập nhật các trường cần thiết từ đối tượng mới (newUser)
-                    user.setEmail(newUser.getEmail());
-                    user.setUsername(newUser.getUsername());
-                    user.setPassword(newUser.getPassword()); // Cần mã hóa nếu cập nhật mật khẩu mới
-                    user.setBirthDate(newUser.getBirthDate());
-                    user.setAvatar(newUser.getAvatar());
-                    user.setAddress(newUser.getAddress());
-                    user.setPhone(newUser.getPhone());
-                    user.setGender(newUser.getGender());
-                    user.setDateUpdated(LocalDateTime.now()); // Cập nhật thời gian sửa đổi
+    public Response updateUser(Long id, Users newUser) {
+        Response response = new Response();
+        try {
+            // Tìm kiếm người dùng theo ID
+            Users user = usersRepository.findById(id)
+                    .orElseThrow(() -> new OurException("User not found with id: " + id));
+            user.setBirthDate(newUser.getBirthDate());
+            user.setAvatar(newUser.getAvatar());
+            user.setAddress(newUser.getAddress());
+            user.setPhone(newUser.getPhone());
+            user.setGender(newUser.getGender());
+            user.setDateUpdated(LocalDateTime.now());
+            usersRepository.save(user);
 
-                    // Cập nhật vai trò nếu cần (Tùy chọn)
-                    if (newUser.getRole() != null) {
-                        Role role = roleRepository.findByRoleName(newUser.getRole().getRoleName())
-                                .orElseThrow(() -> new OurException("Role not found"));
-                        user.setRole(role);
-                    }
+            // Trả về DTO và phản hồi
+            UsersDTO userDTO = userToUserDTO(user);
+            response.setUsersDTO(userDTO);
+            response.setStatusCode(200);
+            response.setMessage("User updated successfully");
+        } catch (OurException e) {
+            response.setStatusCode(400);
+            response.setMessage(e.getMessage());
+        } catch (Exception e) {
+            response.setStatusCode(500);
+            response.setMessage("Error occurred while updating user: " + e.getMessage());
+        }
 
-                    // Trả về người dùng đã được cập nhật
-                    return usersRepository.save(user);
-                })
-                .orElseThrow(() -> new OurException("User not found with id: " + id));
+        return response;
     }
 
     // Phương thức lấy thông tin profile của người dùng dựa trên email
-    public UsersDTO getMyProfile(String email) {
+    public Response getMyProfile(String username) {
+        Response response = new Response();
         try {
-            // Tìm người dùng trong cơ sở dữ liệu bằng email
-            Users user = usersRepository.findByEmail(email)
-                    .orElseThrow(() -> new OurException("User not found"));
-
-            // Chuyển đổi từ đối tượng Users sang UsersDTO
-            UsersDTO userDTO = userToUserDTO(user);
-
-            return userDTO;
+            Optional<Users> userProfile = usersRepository.findByUsername(username);
+            if (userProfile.isPresent()) {
+                UsersDTO userDTO = userToUserDTO(userProfile.get());
+                response.setUsersDTO(userDTO);
+                response.setStatusCode(200);
+                response.setMessage("Succesfully");
+            } else {
+                response.setStatusCode(404);
+                response.setMessage("User not found");
+            }
         } catch (OurException e) {
-            throw new OurException("Error retrieving profile: " + e.getMessage());
+            response.setStatusCode(400);
+            response.setMessage(e.getMessage());
         } catch (Exception e) {
-            throw new RuntimeException("Unexpected error: " + e.getMessage());
+            response.setStatusCode(500);
+            response.setMessage("Error occurred while geting user profile: " + e.getMessage());
         }
+        return response;
     }
 
     // Phương thức chuyển đổi từ Users sang UsersDTO
@@ -200,6 +253,7 @@ public class UsersService{
         userDTO.setGender(user.getGender());
         userDTO.setDateUpdated(user.getDateUpdated());
         userDTO.setDateCreated(user.getDateCreated());
+
         RoleDTO roleDTO = new RoleDTO();
         roleDTO.setId(user.getRole().getId());
         roleDTO.setRoleName(user.getRole().getRoleName());
